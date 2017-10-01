@@ -11,7 +11,7 @@ class DistanceCalculator(metaclass=abc.ABCMeta):
 
 class ManhattanCalculator(DistanceCalculator):
     def calculate(self, left: Point, right: Point) -> float:
-        return (left.x - right.x) + (left.y - right.y)
+        return math.fabs((left.x - right.x) + (left.y - right.y))
 
 
 class EuclidCalculator(DistanceCalculator):
