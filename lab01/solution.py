@@ -4,6 +4,7 @@ import operator
 from kernels import *
 from calculators import *
 from point import *
+import numpy as np
 
 
 class KNearesNeighbour:
@@ -25,7 +26,7 @@ class KNearesNeighbour:
         cat_weight_map = {}
         for neighbour in neighbours:
             weight = self.kernel.calculate(
-                self.dist_calc.calculate(neighbour, test) / self.dist_calc.calculate(neighbour, neighbour_k_1)
+                self.dist_calc.calculate(test, neighbour) / self.dist_calc.calculate(test, neighbour_k_1)
             )
             category = neighbour.category
 
@@ -49,6 +50,43 @@ class KNearesNeighbour:
             neighbors.append(distances[x][0])
 
         return neighbors, distances[self.k][0]
+
+
+class FMeraCalculator:
+    def __init__(self, categories: List[int]):
+        self.categories = categories
+        self.categories_count = len(categories)
+        self.matrix = np.zeros((self.categories_count, self.categories_count))
+
+    def add_data(self, actual: int, expected: int):
+        self.matrix[actual][expected] += 1
+
+    def get_mera(self):
+        precision = self.__precision__()
+        recall = self.__recall__()
+        return 2 * (precision * recall) / (precision + recall)
+
+    def __recall__(self):
+        recall = 0.0
+        for i in range(self.categories_count):
+            sum_by_column = 0.0
+            for j in range(self.categories_count):
+                sum_by_column += self.matrix[j][i]
+
+            recall += (self.matrix[i][i] / sum_by_column)
+
+        return recall / self.categories_count
+
+    def __precision__(self):
+        precision = 0.0
+        for i in range(self.categories_count):
+            sum_by_column = 0.0
+            for j in range(self.categories_count):
+                sum_by_column += self.matrix[i][j]
+
+            precision += (self.matrix[i][i] / sum_by_column)
+
+        return precision / self.categories_count
 
 
 def read_test_file() -> List[Point]:
@@ -78,17 +116,24 @@ def get_data_sets(fold_count: int = 5) -> Tuple[List[Point], List[Point]]:
 
 
 if __name__ == '__main__':
-    # train, test = get_data_sets(fold_count=5)
-    # neighbour = KNearesNeighbour(train=train, k=5, kernel=GausKernel()) -> best!!!
+    # train, test = get_data_sets(fold_count=8)
+    # neighbour = KNearesNeighbour(train=train, k=6, kernel=GausKernel()) # -> best 0.872
 
     # train, test = get_data_sets(fold_count=5)
-    # neighbour = KNearesNeighbour(train=train, k=6, kernel=GausKernel())
+    # neighbour = KNearesNeighbour(train=train, k=5, kernel=GausKernel()) # -> best 0.826
 
-    train, test = get_data_sets(fold_count=5)
-    neighbour = KNearesNeighbour(train=train, k=6, kernel=GausKernel())
+    # train, test = get_data_sets(fold_count=5)
+    # neighbour = KNearesNeighbour(train=train, k=6, kernel=GausKernel()) # -> 0.78
+
+    train, test = get_data_sets(fold_count=8)
+    neighbour = KNearesNeighbour(train=train, k=3, kernel=GausKernel())
+
+    calculator = FMeraCalculator([0, 1])
     for t in test:
         predict_cat = neighbour.predict(t)
         true_cat = t.category
+        calculator.add_data(predict_cat, true_cat)
         print(predict_cat, true_cat)
 
+    print(calculator.get_mera())
     pass
