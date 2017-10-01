@@ -99,12 +99,17 @@ def read_test_file() -> List[Point]:
     return res
 
 
-def get_data_sets(fold_count: int = 5) -> Tuple[List[Point], List[Point]]:
+def get_data_sets(fold_count: int = 5, shuffle: bool = False) -> Tuple[List[Point], List[Point]]:
     train = []
     test = []
 
+    points = read_test_file()
+
+    if shuffle:
+        np.random.shuffle(points)
+
     c: int = 0
-    for point in read_test_file():
+    for point in points:
         if c == fold_count - 1:
             test.append(point)
             c = 0
@@ -125,8 +130,8 @@ if __name__ == '__main__':
     # train, test = get_data_sets(fold_count=5)
     # neighbour = KNearesNeighbour(train=train, k=6, kernel=GausKernel()) # -> 0.78
 
-    train, test = get_data_sets(fold_count=8)
-    neighbour = KNearesNeighbour(train=train, k=3, kernel=GausKernel())
+    train, test = get_data_sets(fold_count=10, shuffle=True)
+    neighbour = KNearesNeighbour(train=train, k=6, kernel=GausKernel())
 
     calculator = FMeraCalculator([0, 1])
     for t in test:
