@@ -6,6 +6,8 @@ from calculators import *
 from point import *
 import numpy as np
 
+import matplotlib.pyplot as plt
+
 
 class KNearesNeighbour:
     def __init__(
@@ -84,61 +86,68 @@ class FMeraCalculator:
             for j in range(self.categories_count):
                 sum_by_column += self.matrix[i][j]
 
-            precision += (self.matrix[i][i] / sum_by_column)
+            if sum_by_column == 0:
+                precision += 0
+            else:
+                precision += (self.matrix[i][i] / sum_by_column)
 
         return precision / self.categories_count
 
 
-def read_test_file() -> List[Point]:
+def read_test_file(shuffle: bool = False):
     res = []
     with open('dataset.txt') as f:
         for line in f:
             values = line.split(',')
             res.append(Point(float(values[0]), float(values[1]), int(values[2])))
 
+    if shuffle:
+        np.random.shuffle(res)
     return res
 
 
-def get_data_sets(fold_count: int = 5, shuffle: bool = False) -> Tuple[List[Point], List[Point]]:
-    train = []
+def get_data_sets(train, test, fold_count: int = 5) -> Tuple[List[Point], List[Point]]:
+    all_data = []
+    all_data.extend(train)
+    all_data.extend(test)
+    return all_data[len(all_data) // fold_count:], all_data[0: len(all_data) // fold_count]
+
+
+def test(
+        kernel: Kernel,
+        dist_calc: DistanceCalculator,
+        dataset,
+        k: int,
+        fold_count: int = 5
+):
+    f_mera = FMeraCalculator([0, 1])
+
+    train = dataset
     test = []
+    for i in range(len(dataset) // fold_count):
+        train, test = get_data_sets(train, test, fold_count)
+        neighbour = KNearesNeighbour(train=train, k=k, kernel=GausKernel(), dist_calc=dist_calc)
+        for t in test:
+            predict_cat = neighbour.predict(t)
+            true_cat = t.category
+            f_mera.add_data(predict_cat, true_cat)
 
-    points = read_test_file()
-
-    if shuffle:
-        np.random.shuffle(points)
-
-    c: int = 0
-    for point in points:
-        if c == fold_count - 1:
-            test.append(point)
-            c = 0
-        else:
-            train.append(point)
-            c += 1
-
-    return train, test
+    return f_mera.get_mera()
 
 
 if __name__ == '__main__':
-    # train, test = get_data_sets(fold_count=8)
-    # neighbour = KNearesNeighbour(train=train, k=6, kernel=GausKernel()) # -> best 0.872
+    dataset = read_test_file(True)
 
-    # train, test = get_data_sets(fold_count=5)
-    # neighbour = KNearesNeighbour(train=train, k=5, kernel=GausKernel()) # -> best 0.826
+    # for fold_count in range(2, 20):
+    x = []
+    y = []
+    for k in range(2, 20):
+        f = test(GausKernel(), EuclidCalculator(ConusTransformer()), dataset, k, 10)
+        x.append(k)
+        y.append(f)
+        print('k={}; f={}'.format(k, f))
 
-    # train, test = get_data_sets(fold_count=5)
-    # neighbour = KNearesNeighbour(train=train, k=6, kernel=GausKernel()) # -> 0.78
+    plt.plot(x, y)
+    plt.show()
 
-    train, test = get_data_sets(fold_count=10, shuffle=True)
-    neighbour = KNearesNeighbour(train=train, k=6, kernel=GausKernel())
-
-    calculator = FMeraCalculator([0, 1])
-    for t in test:
-        predict_cat = neighbour.predict(t)
-        true_cat = t.category
-        calculator.add_data(predict_cat, true_cat)
-        print(predict_cat, true_cat)
-
-    print(calculator.get_mera())
     pass
