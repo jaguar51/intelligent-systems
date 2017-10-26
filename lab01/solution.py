@@ -1,9 +1,9 @@
 from typing import List, Tuple
 
 import operator
-from kernels import *
-from calculators import *
-from point import *
+from lab01.kernels import *
+from lab01.calculators import *
+from lab01.point import *
 import numpy as np
 
 import matplotlib.pyplot as plt

@@ -2,7 +2,7 @@ import abc
 import math
 from typing import List
 
-from point import Point
+from lab01.point import Point
 
 
 class Transformer(metaclass=abc.ABCMeta):
