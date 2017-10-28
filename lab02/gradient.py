@@ -49,12 +49,12 @@ if __name__ == '__main__':
 
     compute_error_for_all(g, x, y)
 
-    while True:
+    while False:
         raw_str = input("Input 'q' to exit or 3 number: \n")
         if raw_str.lower() == 'q':
             break
 
-        arr = [int(num) for num in raw_str.split(' ')]
+        arr = [int(num) for num in raw_str.replace(',', ' ').split(' ')]
 
         predict = g.predict(np.asarray(arr[:2]))
         error = compute_error(np.asarray([predict]), np.asarray([arr[2]]))

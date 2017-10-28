@@ -71,6 +71,8 @@ if __name__ == '__main__':
     ))
     print("Running...")
     [a, b, c] = gradient_descent(data, initial_a, initial_b, initial_c, learning_rate, num_iterations)
+    print("Total error = {}\n".format(compute_error_for_line_given_points(a,b,c,data)))
+
     while False:
         sym = input()
         if sym == 'q':
