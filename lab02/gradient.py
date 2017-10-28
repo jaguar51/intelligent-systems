@@ -1,85 +1,61 @@
-import math
 from lab02.common import *
+import numpy as np
 
 
-# z = ax + by + c // a, b, c
-def compute_error_for_line_given_points(a, b, c, points):
-    error = 0
-    for row in points:
-        x, y, z = row
-        error += (z - calculate_value(a, b, c, x, y)) ** 2
-    return math.sqrt(error / len(points))
+class GradientDescent:
+    def __init__(self, alpha: float, iterations: int):
+        self.theta: np.ndarray = np.asarray([])
+        self.alpha: float = alpha
+        self.iterations: int = iterations
+
+    def fit(self, x: np.ndarray, y: np.ndarray):
+        theta: np.ndarray = np.ones(x.shape[1])
+
+        for i in range(self.iterations):
+            hypothesis = np.dot(x, theta)
+            loss = hypothesis - y
+            gradient = np.dot(x.transpose(), loss) / x.shape[0] * 2
+            theta = theta - self.alpha * gradient
+
+        self.theta = theta
+
+    def predict(self, x: np.ndarray):
+        return np.dot(x.transpose(), self.theta)
 
 
-def calculate_value(a, b, c, x, y):
-    return a * x + b * y + c
+def compute_error(predict, y):
+    predict_ = np.dot((y - predict).transpose(), (y - predict))
+    # return np.sqrt(predict_ / predict.shape[0])
+    return predict_ / predict.shape[0]
 
 
-def step_gradient(a_cur, b_cur, c_cur, points, learning_rate):
-    a_gradient = 0
-    b_gradient = 0
-    c_gradient = 0
+def compute_error_for_all(g: GradientDescent, x: np.ndarray, y: np.ndarray):
+    pred = []
+    for i in range(len(x)):
+        g_predict = g.predict(x[i])
+        pred.append(g_predict)
 
-    N = len(points)
+    pred = np.asarray(pred)
 
-    for i in range(0, len(points)):
-        x = points[i][0]
-        y = points[i][1]
-        z = points[i][2]
+    error = compute_error(pred, y)
 
-        a_gradient += (2 / N) * ((a_cur * x + b_cur * y + c_cur) - z) * x
-        b_gradient += (2 / N) * ((a_cur * x + b_cur * y + c_cur) - z) * y
-        c_gradient += (2 / N) * ((a_cur * x + b_cur * y + c_cur) - z)
-
-    new_a = a_cur - (learning_rate * a_gradient)
-    new_b = b_cur - (learning_rate * b_gradient)
-    new_c = c_cur - (learning_rate * c_gradient)
-
-    return [new_a, new_b, new_c]
-
-
-def gradient_descent(data, starting_a, starting_b, starting_c, learning_rate, iteration_count):
-    a = starting_a
-    b = starting_b
-    c = starting_c
-    for i in range(iteration_count):
-        a, b, c = step_gradient(a, b, c, data, learning_rate)
-        print("After {0} iterations a = {1}, b = {2}, c = {3}, error = {4}".format(
-            i,
-            a, b, c,
-            compute_error_for_line_given_points(a, b, c, data)
-        ))
-    return [a, b, c]
+    print("Total error = {}\n".format(error))
 
 
 if __name__ == '__main__':
-    data = read_data()
-    learning_rate = 0.0000002  # learning_rate = k / t, k - number constant, t - iteration num
-    # initial_a = 176
-    # initial_b = 19
-    # initial_c = 6
-    initial_a = 0
-    initial_b = 0
-    initial_c = 0
-    num_iterations = 5000
+    x, y = read_split_data()
+    g = GradientDescent(0.0000002, 5000)
+    g.fit(x, y)
 
-    print("Starting gradient descent at a = {0}, b = {1}, c = {2}, error = {3}".format(
-        initial_a,
-        initial_b,
-        initial_c,
-        compute_error_for_line_given_points(initial_a, initial_b, initial_c, data)
-    ))
-    print("Running...")
-    [a, b, c] = gradient_descent(data, initial_a, initial_b, initial_c, learning_rate, num_iterations)
-    while False:
-        sym = input()
-        if sym == 'q':
-            exit()
+    compute_error_for_all(g, x, y)
 
-        x = int(sym)
-        y = int(input())
-        z = int(input())
-        print("Value = {}, Error = {}".format(
-            calculate_value(a, b, c, x, y),
-            compute_error_for_line_given_points(a, b, c, [[x, y, z]]))
-        )
+    while True:
+        raw_str = input("Input 'q' to exit or 3 number: \n")
+        if raw_str.lower() == 'q':
+            break
+
+        arr = [int(num) for num in raw_str.split(' ')]
+
+        predict = g.predict(np.asarray(arr[:2]))
+        error = compute_error(np.asarray([predict]), np.asarray([arr[2]]))
+        print("Value = {}, Error = {}\n".format(predict, error))

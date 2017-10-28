@@ -1,6 +1,7 @@
 import csv
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # dont remove
+import numpy as np
 
 
 def read_data(file_name: str = 'prices.txt'):
@@ -10,6 +11,13 @@ def read_data(file_name: str = 'prices.txt'):
         rows = [[float(row[0]), float(row[1]), float(row[2])] for row in reader]
 
     return rows
+
+
+def read_split_data(file_name: str = 'prices.txt'):
+    data = read_data(file_name)
+    x = [[el[0], el[1]] for el in data]
+    y = [el[2] for el in data]
+    return np.asarray(x), np.asarray(y)
 
 
 def plot_data(data):
