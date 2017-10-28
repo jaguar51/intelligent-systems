@@ -1,5 +1,4 @@
 import random
-import numpy as np
 
 from lab02.common import *
 
@@ -59,25 +58,6 @@ class Genetic:
         offspring.sort()
         population = [kid[1] for kid in offspring[:population]]
         return population
-
-
-def compute_error(predict, y):
-    predict_ = np.dot((y - predict).transpose(), (y - predict))
-    # return np.sqrt(predict_ / predict.shape[0])
-    return predict_ / predict.shape[0]
-
-
-def compute_error_for_all(g: Genetic, x: np.ndarray, y: np.ndarray):
-    pred = []
-    for i in range(len(x)):
-        g_predict = g.predict(x[i])
-        pred.append(g_predict)
-
-    pred = np.asarray(pred)
-
-    error = compute_error(pred, y)
-
-    print("Total error = {}\n".format(error))
 
 
 if __name__ == '__main__':
