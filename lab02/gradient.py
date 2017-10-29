@@ -24,7 +24,9 @@ class GradientDescent:
 
 if __name__ == '__main__':
     x, y = read_split_data()
-    g = GradientDescent(0.0000002, 5000)
+    x = (x - x.mean()) / x.std()
+
+    g = GradientDescent(0.1, 5000)
     g.fit(x, y)
 
     compute_error_for_all(g, x, y)
