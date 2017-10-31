@@ -9,6 +9,7 @@ class Genetic:
         self.theta: np.ndarray = np.asarray([])
         self.population_size = population_size
         self.children = 10
+        self.calc_err_iter =0
 
     def fit(self, x: np.ndarray, y: np.ndarray):
         population = self.__generate_population__(self.population_size, x.shape[1])
@@ -17,8 +18,9 @@ class Genetic:
             offspring = []
             for genom in population:
                 for j in range(self.children):
-                    child = self.__mutation__(genom, 1)
+                    child = self.__mutation__(genom, 100)
                     child_loss = self.__error_internal__(x, y, child)
+                    self.calc_err_iter+=1
                     offspring.append([child_loss, child])
 
             population = self.__selection__(offspring, len(population))
@@ -67,6 +69,7 @@ if __name__ == '__main__':
     g.fit(x, y)
 
     compute_error_for_all(g, x, y)
+    print(g.calc_err_iter)
 
     while False:
         raw_str = input("Input 'q' to exit or 3 number: \n")

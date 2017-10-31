@@ -15,7 +15,7 @@ def read_data(file_name: str = 'prices.txt'):
 
 def read_split_data(file_name: str = 'prices.txt'):
     data = read_data(file_name)
-    x = [[el[0], el[1]] for el in data]
+    x = [[el[0], el[1], 1] for el in data]
     y = [el[2] for el in data]
     return np.asarray(x), np.asarray(y)
 
@@ -23,7 +23,7 @@ def read_split_data(file_name: str = 'prices.txt'):
 def compute_error(predict, y):
     predict_ = np.dot((y - predict).transpose(), (y - predict))
     # return np.sqrt(predict_ / predict.shape[0])
-    return predict_ / predict.shape[0]
+    return np.sqrt(predict_ / predict.shape[0])
 
 
 def compute_error_for_all(g, x: np.ndarray, y: np.ndarray):
