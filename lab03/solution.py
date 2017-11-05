@@ -84,11 +84,13 @@ class NaiveBayes:
 
     def predict(self, x: list):
         y = []
+        epsilon = np.finfo(float).eps
+
         for doc in x:
             val = min(
                 self._classes.keys(),
                 key=lambda cl: -log(self._classes[cl]) + sum(
-                    -log(self._freq.get((cl, word), 10 ** (-7))) for word in doc)
+                    -log(self._freq.get((cl, word), epsilon)) for word in doc)
             )
             y.append(val)
         return y
