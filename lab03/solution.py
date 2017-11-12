@@ -17,9 +17,7 @@ def read_data(dirname: str = './dataset') -> defaultdict:
         return res
 
     def is_spam_msg(file: Path) -> int:
-        if 'spmsg' in file.name:
-            return 0
-        return 1
+        return 0 if 'spmsg' in file.name else 1
 
     for part in Path(dirname).iterdir():
         if not part.is_dir():
@@ -87,12 +85,13 @@ class NaiveBayes:
         epsilon = np.finfo(float).eps
 
         for doc in x:
-            val = min(
-                self._classes.keys(),
-                key=lambda cl: -log(self._classes[cl]) + sum(
-                    -log(self._freq.get((cl, word), epsilon)) for word in doc)
-            )
-            y.append(val)
+            values = defaultdict(lambda: 0)
+            for cl in self._classes.keys():
+                val = -log(self._classes[cl])
+                val += sum(-log(self._freq.get((cl, word), epsilon)) for word in doc)
+                values[cl] += val
+
+            y.append(min(values, key=values.get))
         return y
 
 
