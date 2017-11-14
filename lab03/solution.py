@@ -55,7 +55,8 @@ def train_test_split(dataset: defaultdict, k=10):
 
 
 class NaiveBayes:
-    def __init__(self):
+    def __init__(self, threshold=0.0):
+        self.threshold = threshold
         self._classes = defaultdict()
         self._freq = defaultdict()
 
@@ -91,8 +92,15 @@ class NaiveBayes:
                 val += sum(-log(self._freq.get((cl, word), epsilon)) for word in doc)
                 values[cl] += val
 
-            y.append(min(values, key=values.get))
+            # y.append(min(values, key=values.get))
+            y.append(self._class_2(values))
         return y
+
+    def _class_2(self, values):
+        if values[0] - values[1] < self.threshold:
+            return 0
+        else:
+            return 1
 
 
 class FMeraCalculator:
@@ -135,23 +143,69 @@ class FMeraCalculator:
         return precision / self.categories_count
 
 
-def k_fold_cross_validation(dataset: defaultdict):
+def k_fold_cross_validation(dataset: defaultdict, threshold, enable_log=False):
     total_f_mera = FMeraCalculator([0, 1])
 
     for x_test, y_test, x_train, y_train in train_test_split(dataset):
         local_f_mera = FMeraCalculator([0, 1])
-        predict = NaiveBayes().fit(x_train, y_train).predict(x_test)
+        predict = NaiveBayes(threshold).fit(x_train, y_train).predict(x_test)
         for i in range(len(predict)):
             total_f_mera.add_data(predict[i], y_test[i])
             local_f_mera.add_data(predict[i], y_test[i])
 
-        data = [[local_f_mera.__precision__(), local_f_mera.__recall__(), local_f_mera.get_mera()]]
-        print(tabulate(data, headers=["precision", "recall", "F"], floatfmt='.3f'))
-        print()
+        if enable_log:
+            data = [[
+                local_f_mera.matrix[1, 1],
+                local_f_mera.matrix[0, 0],
+                local_f_mera.matrix[0, 1],
+                local_f_mera.matrix[1, 0],
+                local_f_mera.get_mera()
+            ]]
+            print(tabulate(data, headers=["TP", "TN", "FP", "FN", "F"], floatfmt='.3f'))
+            print()
 
+    print("-------------------------------------------")
+    print("Total")
+    data = [[
+        total_f_mera.matrix[1, 1],
+        total_f_mera.matrix[0, 0],
+        total_f_mera.matrix[0, 1],
+        total_f_mera.matrix[1, 0],
+        total_f_mera.get_mera()
+    ]]
+    print(tabulate(data, headers=["TP", "TN", "FP", "FN", "F"], floatfmt='.3f'))
     print('Total F measure result: {}'.format(total_f_mera.get_mera()))
+
+
+def find_threshold(dataset: defaultdict, max=400):
+    left = 0
+    right = max
+
+    for i in range(100):
+        mid = (left + right) / 2
+
+        total_f_mera = FMeraCalculator([0, 1])
+        for x_test, y_test, x_train, y_train in train_test_split(dataset):
+            local_f_mera = FMeraCalculator([0, 1])
+            predict = NaiveBayes(mid).fit(x_train, y_train).predict(x_test)
+            for i in range(len(predict)):
+                total_f_mera.add_data(predict[i], y_test[i])
+                local_f_mera.add_data(predict[i], y_test[i])
+
+        # mera = total_f_mera.get_mera()
+        fn = total_f_mera.matrix[1, 0]
+        print(mid)
+        if fn > 0:
+            left = mid
+        else:
+            right = mid
+
+    print(left, right)
 
 
 if __name__ == '__main__':
     data = read_data()
-    k_fold_cross_validation(data)
+    k_fold_cross_validation(data, 0)
+    k_fold_cross_validation(data, 305.78954815864563)
+    k_fold_cross_validation(data, 310)
+    # find_threshold(data)
