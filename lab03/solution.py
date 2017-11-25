@@ -109,8 +109,8 @@ class FMeraCalculator:
         self.categories_count = len(categories)
         self.matrix = np.zeros((self.categories_count, self.categories_count))
 
-    def add_data(self, actual: int, expected: int):
-        self.matrix[actual][expected] += 1
+    def add_data(self, actual, expected):
+        self.matrix[int(actual)][int(expected)] += 1
 
     def get_mera(self):
         precision = self.__precision__()
