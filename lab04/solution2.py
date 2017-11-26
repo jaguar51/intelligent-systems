@@ -4,25 +4,59 @@ import cvxopt
 import math
 
 import numpy as np
+import numpy.linalg as la
 
 from lab03.solution import FMeraCalculator
 
 
-class Kernel(metaclass=abc.ABCMeta):
+class Transformer(metaclass=abc.ABCMeta):
     @abc.abstractclassmethod
+    def transform(self, x, y):
+        pass
+
+
+class DefTransformer(Transformer):
+    def transform(self, x, y):
+        return x, y
+
+
+class ConusTransformer(Transformer):
+    def transform(self, x, y):
+        n_x = [x[0], x[1], math.sqrt(x[0] ** 2 + x[1] ** 2)]
+        n_y = [y[0], y[1], math.sqrt(y[0] ** 2 + y[1] ** 2)]
+
+        return n_x, n_y
+
+
+class Kernel(metaclass=abc.ABCMeta):
+    def __init__(self, transformer: Transformer = DefTransformer()):
+        self._transformer = transformer
+
     def calculate(self, x, y) -> float:
+        n_x, n_y = self._transformer.transform(x, y)
+        return self._calculate(n_x, n_y)
+
+    @abc.abstractclassmethod
+    def _calculate(self, x, y) -> float:
         pass
 
 
 class LinearKernel(Kernel):
-    def calculate(self, x, y) -> float:
-        n_x = [x[0], x[1], math.sqrt(x[0] ** 2 + x[1] ** 2)]
-        n_y = [y[0], y[1], math.sqrt(y[0] ** 2 + y[1] ** 2)]
-        return np.inner(n_x, n_y)
+    def _calculate(self, x, y) -> float:
+        return np.inner(x, y)
+
+
+class RadialBasisKernel(Kernel):
+    def __init__(self, transformer: Transformer = DefTransformer(), gamma=10) -> None:
+        super().__init__(transformer)
+        self._gamma = gamma
+
+    def _calculate(self, x, y) -> float:
+        return np.exp(-self._gamma * la.norm(np.subtract(x, y)))
 
 
 class SVMTrainer:
-    def __init__(self, kernel: Kernel = LinearKernel(), c=0.1):
+    def __init__(self, kernel: Kernel = RadialBasisKernel(transformer=ConusTransformer()), c=0.1):
         self._kernel = kernel
         self._c = c
 
