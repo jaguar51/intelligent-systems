@@ -1,15 +1,184 @@
+import abc
+
 import cvxopt
 import math
 
 import numpy as np
+import numpy.linalg as la
 
 from lab03.solution import FMeraCalculator
+
+
+class Transformer(metaclass=abc.ABCMeta):
+    @abc.abstractclassmethod
+    def transform(self, x, y):
+        pass
+
+
+class DefTransformer(Transformer):
+    def transform(self, x, y):
+        return x, y
+
+
+class ConeTransformer(Transformer):
+    def transform(self, x, y):
+        n_x = [x[0], x[1], math.sqrt(x[0] ** 2 + x[1] ** 2)]
+        n_y = [y[0], y[1], math.sqrt(y[0] ** 2 + y[1] ** 2)]
+
+        return n_x, n_y
+
+
+class ParabaloidTransformer(Transformer):
+    def transform(self, x, y):
+        n_x = [x[0], x[1], (x[0] ** 2 + x[1] ** 2)]
+        n_y = [y[0], y[1], (y[0] ** 2 + y[1] ** 2)]
+
+        return n_x, n_y
+
+
+class Kernel(metaclass=abc.ABCMeta):
+    def __init__(self, transformer: Transformer = DefTransformer()):
+        self._transformer = transformer
+
+    def calculate(self, x, y) -> float:
+        n_x, n_y = self._transformer.transform(x, y)
+        return self._calculate(n_x, n_y)
+
+    @abc.abstractclassmethod
+    def _calculate(self, x, y) -> float:
+        pass
+
+
+class LinearKernel(Kernel):
+    def _calculate(self, x, y) -> float:
+        return np.inner(x, y)
+
+
+class RadialBasisKernel(Kernel):
+    def __init__(self, transformer: Transformer = DefTransformer(), gamma=10) -> None:
+        super().__init__(transformer)
+        self._gamma = gamma
+
+    def _calculate(self, x, y) -> float:
+        return np.exp(-self._gamma * la.norm(np.subtract(x, y)))
+
+
+class SVMTrainer:
+    def __init__(self, kernel: Kernel = RadialBasisKernel(transformer=ConeTransformer()), c=0.1):
+        self._kernel = kernel
+        self._c = c
+
+    def fit(self, X, y):
+        """
+        Given the training features X with labels y, returns a SVM
+        predictor representing the trained SVM.
+        """
+        lagrange_multipliers = self._compute_multipliers(X, y)
+        return self._construct_predictor(X, y, lagrange_multipliers)
+
+    def _compute_multipliers(self, X, y):
+        n_samples, n_features = X.shape
+
+        K = self._gram_matrix(X)
+        # Solves
+        # min 1/2 x^T P x + q^T x
+        # s.t.
+        #  Gx \coneleq h
+        #  Ax = b
+
+        P = cvxopt.matrix(np.outer(y, y) * K)
+        q = cvxopt.matrix(-1 * np.ones(n_samples))
+
+        # -a_i \leq 0
+        # TODO(tulloch) - modify G, h so that we have a soft-margin classifier
+        G_std = cvxopt.matrix(np.diag(np.ones(n_samples) * -1))
+        h_std = cvxopt.matrix(np.zeros(n_samples))
+
+        # a_i \leq c
+        G_slack = cvxopt.matrix(np.diag(np.ones(n_samples)))
+        h_slack = cvxopt.matrix(np.ones(n_samples) * self._c)
+
+        G = cvxopt.matrix(np.vstack((G_std, G_slack)))
+        h = cvxopt.matrix(np.vstack((h_std, h_slack)))
+
+        A = cvxopt.matrix(y, (1, n_samples))
+        b = cvxopt.matrix(0.0)
+
+        solution = cvxopt.solvers.qp(P, q, G, h, A, b)
+
+        # Lagrange multipliers
+        return np.ravel(solution['x'])
+
+    def _construct_predictor(self, X, y, lagrange_multipliers):
+        support_vector_indices = lagrange_multipliers > 1e-5
+
+        support_multipliers = lagrange_multipliers[support_vector_indices]
+        support_vectors = X[support_vector_indices]
+        support_vector_labels = y[support_vector_indices]
+
+        # http://www.cs.cmu.edu/~guestrin/Class/10701-S07/Slides/kernels.pdf
+        # bias = y_k - \sum z_i y_i  K(x_k, x_i)
+        # Thus we can just predict an example with bias of zero, and
+        # compute error.
+        bias = np.mean([
+            y_k - SVMPredictor(
+                kernel=self._kernel,
+                bias=0.0,
+                weights=support_multipliers,
+                support_vectors=support_vectors,
+                support_vector_labels=support_vector_labels
+            ).predict(x_k)
+            for (y_k, x_k) in zip(support_vector_labels, support_vectors)
+        ])
+
+        return SVMPredictor(
+            kernel=self._kernel,
+            bias=bias,
+            weights=support_multipliers,
+            support_vectors=support_vectors,
+            support_vector_labels=support_vector_labels
+        )
+
+    def _gram_matrix(self, X):
+        n_samples, n_features = X.shape
+        K = np.zeros((n_samples, n_samples))
+        for i, x_i in enumerate(X):
+            for j, x_j in enumerate(X):
+                K[i, j] = self._kernel.calculate(x_i, x_j)
+        return K
+
+
+class SVMPredictor:
+    def __init__(
+            self,
+            kernel: Kernel,
+            bias, weights,
+            support_vectors,
+            support_vector_labels
+    ):
+        self._kernel = kernel
+        self._bias = bias
+        self._weights = weights
+        self._support_vectors = support_vectors
+        self._support_vector_labels = support_vector_labels
+
+    def predict(self, x):
+        """
+        Computes the SVM prediction on the given features x.
+        """
+        result = self._bias
+        for z_i, x_i, y_i in zip(self._weights,
+                                 self._support_vectors,
+                                 self._support_vector_labels):
+            result += z_i * y_i * self._kernel.calculate(x_i, x)
+        return np.sign(result).item()
 
 
 def unison_shuffled_copies(a, b):
     assert len(a) == len(b)
     p = np.random.permutation(len(a))
     return np.asarray(a)[p], np.asarray(b)[p]
+
 
 def read_test_file():
     features = []
@@ -45,105 +214,16 @@ def test(
         train_x, test_x = get_data_sets(train_x, test_x, fold_count)
         train_y, test_y = get_data_sets(train_y, test_y, fold_count)
 
-        svm = SVM().fit(np.asarray(train_x), np.asarray(train_y))
+        # print()
+        # print("Train {}".format(i))
+        svm = SVMTrainer().fit(np.asarray(train_x), np.asarray(train_y))
 
         for features, true_cat in zip(test_x, test_y):
             predict_cat = svm.predict(features)
-            print("pred {} true {}".format(predict_cat, true_cat))
-            f_mera.add_data((predict_cat + 1) // 2, (true_cat + 1)//2)
+            # print("pred {} true {}".format(predict_cat, true_cat))
+            f_mera.add_data((predict_cat + 1) // 2, (true_cat + 1) // 2)
 
     return f_mera.get_mera()
-
-
-def linear_kernel(x1, x2):
-    n_x1 = [x1[0], x1[1], math.sqrt(x1[0]**2 + x1[1]**2)]
-    n_x2 = [x2[0], x2[1], math.sqrt(x2[0]**2 + x2[1]**2)]
-    return np.dot(n_x1, n_x2)
-    # return np.dot(x1, x2)
-
-
-# def polynomial_kernel(x, y, p=3):
-#     return (1 + np.dot(x, y)) ** p
-
-
-class SVM:
-    def __init__(self, kernel=linear_kernel, C: float = 0.1):
-        self.kernel = kernel
-        self.C = C
-
-    def fit(self, X, y):
-        n_samples, n_features = X.shape
-
-        # Gram matrix
-        K = np.zeros((n_samples, n_samples))
-        for i in range(n_samples):
-            for j in range(n_samples):
-                K[i, j] = self.kernel(X[i], X[j])
-
-        # params
-        P = cvxopt.matrix(np.outer(y, y) * K)
-        q = cvxopt.matrix(np.ones(n_samples) * -1)
-        A = cvxopt.matrix(y, (1, n_samples))
-        b = cvxopt.matrix(0.0)
-        G = cvxopt.matrix(np.vstack((
-            np.diag(np.ones(n_samples) * -1),
-            np.identity(n_samples)
-        )))
-        h = cvxopt.matrix(np.hstack((
-            np.zeros(n_samples),
-            np.ones(n_samples) * self.C
-        )))
-
-        # solve QP problem
-        solution = cvxopt.solvers.qp(P, q, G, h, A, b)
-
-        # Lagrange multipliers
-        a = np.ravel(solution['x'])
-
-        # Support vectors have non zero lagrange multipliers
-        sv = a > 1e-5
-        ind = np.arange(len(a))[sv]  # indexes for True values
-        self.a = a[sv]
-        self.sv = X[sv]
-        self.sv_y = y[sv]
-        print("{} support vectors out of {} points".format(len(ind), n_samples))
-
-        # Intercept
-        self.b = 0
-        for n in range(len(self.a)):
-            self.b += self.sv_y[n]
-            self.b -= np.sum(self.a * self.sv_y * K[ind[n], sv])
-        self.b /= len(self.a)
-
-        # Weight vector
-        if self.kernel == linear_kernel:
-            self.w = np.zeros(n_features)
-            for n in range(len(self.a)):
-                self.w += self.a[n] * self.sv_y[n] * self.sv[n]
-        else:
-            self.w = None
-
-        return self
-
-    def predict(self, X):
-        # if np.sign(self.project(X)) > 0:
-        #     return 1
-        # else:
-        #     return 0
-        #
-        return np.sign(self.project(X))
-
-    def project(self, X):
-        if self.w is not None:
-            return np.dot(X, self.w) + self.b
-        else:
-            y_predict = np.zeros(len(X))
-            for i in range(len(X)):
-                s = 0
-                for a, sv_y, sv in zip(self.a, self.sv_y, self.sv):
-                    s += a * sv_y * self.kernel(X[i], sv)
-                y_predict[i] = s
-            return y_predict + self.b
 
 
 if __name__ == '__main__':
