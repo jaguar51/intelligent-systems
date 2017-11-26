@@ -72,8 +72,17 @@ class GaussianKernel(Kernel):
         return np.exp(-la.norm(np.asarray(x) - np.asarray(y)) ** 2 / (2 * (self._sigma ** 2)))
 
 
+class PolynomialKernel(Kernel):
+    def __init__(self, transformer: Transformer = DefTransformer(), p=3):
+        super().__init__(transformer)
+        self._p = p
+
+    def _calculate(self, x, y) -> float:
+        return (1 + np.dot(x, y)) ** self._p
+
+
 class SVMTrainer:
-    def __init__(self, kernel: Kernel = GaussianKernel(transformer=ParabaloidTransformer()), c=5):
+    def __init__(self, kernel: Kernel = GaussianKernel(transformer=ParabaloidTransformer()), c=5.0):
         self._kernel = kernel
         self._c = c
 
