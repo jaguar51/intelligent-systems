@@ -63,8 +63,17 @@ class RadialBasisKernel(Kernel):
         return np.exp(-self._gamma * la.norm(np.subtract(x, y)))
 
 
+class GaussianKernel(Kernel):
+    def __init__(self, transformer: Transformer = DefTransformer(), sigma=0.5):
+        super().__init__(transformer)
+        self._sigma = sigma
+
+    def _calculate(self, x, y) -> float:
+        return np.exp(-la.norm(np.asarray(x) - np.asarray(y)) ** 2 / (2 * (self._sigma ** 2)))
+
+
 class SVMTrainer:
-    def __init__(self, kernel: Kernel = RadialBasisKernel(transformer=ConeTransformer()), c=0.1):
+    def __init__(self, kernel: Kernel = GaussianKernel(transformer=ParabaloidTransformer()), c=5):
         self._kernel = kernel
         self._c = c
 
@@ -216,7 +225,10 @@ def test(
 
         # print()
         # print("Train {}".format(i))
-        svm = SVMTrainer().fit(np.asarray(train_x), np.asarray(train_y))
+        svm = SVMTrainer(
+            kernel=GaussianKernel(transformer=ParabaloidTransformer()),
+            c=5
+        ).fit(np.asarray(train_x), np.asarray(train_y))
 
         for features, true_cat in zip(test_x, test_y):
             predict_cat = svm.predict(features)
