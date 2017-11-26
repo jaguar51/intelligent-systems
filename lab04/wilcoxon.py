@@ -1,6 +1,8 @@
 import scipy.stats as stat
 import numpy as np
 
+from utils.fmera import FMeraCalculator
+
 
 def unison_shuffled_copies(a, b):
     assert len(a) == len(b)
@@ -63,7 +65,8 @@ def get_best_svm():
 
 def test(
         dataset,
-        fold_count: int = 5
+        fold_count: int = 5,
+        additional_log=True
 ):
     train_x = dataset[0]
     train_y = dataset[1]
@@ -73,6 +76,9 @@ def test(
 
     total_knn_predict = []
     total_svm_predict = []
+
+    fmera_knn = FMeraCalculator([0, 1])
+    fmera_svm = FMeraCalculator([0, 1])
 
     for i in range(fold_count):
         train_x, test_x = get_data_sets(train_x, test_x, fold_count)
@@ -88,16 +94,24 @@ def test(
             # svm_predict = svm.predict(features)
 
             knn_predict = knn.predict(transform_for_knn([features], [true_cat])[0])
-            svm_predict = svm.predict(features) + 1 / 1
+            svm_predict = (svm.predict(features) + 1) / 2
 
             arr_left.append(knn_predict)
             arr_right.append(svm_predict)
 
+            fmera_knn.add_data(knn_predict, 1 if true_cat == 1 else 0)
+            fmera_svm.add_data(svm_predict, 1 if true_cat == 1 else 0)
+
         t, p = stat.wilcoxon(arr_left, arr_right)
-        print('Wilcoxon: {}; p-value: {}'.format(t, p))
+        if additional_log:
+            print('Wilcoxon: {}; p-value: {}'.format(t, p))
 
         total_knn_predict.extend(arr_left)
         total_svm_predict.extend(arr_right)
+
+    if additional_log:
+        print('F-Measure KNN: {}'.format(fmera_knn.get_mera()))
+        print('F-Measure SVM: {}'.format(fmera_svm.get_mera()))
 
     return stat.wilcoxon(total_knn_predict, total_svm_predict)
 
