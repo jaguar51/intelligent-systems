@@ -6,7 +6,7 @@ import math
 import numpy as np
 import numpy.linalg as la
 
-from lab03.solution import FMeraCalculator
+from utils.fmera import FMeraCalculator
 
 
 class Transformer(metaclass=abc.ABCMeta):

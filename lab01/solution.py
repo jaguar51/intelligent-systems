@@ -8,6 +8,8 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
+from utils.fmera import FMeraCalculator
+
 
 class KNearesNeighbour:
     def __init__(
@@ -52,47 +54,6 @@ class KNearesNeighbour:
             neighbors.append(distances[x][0])
 
         return neighbors, distances[self.k][0]
-
-
-class FMeraCalculator:
-    def __init__(self, categories: List[int]):
-        self.categories = categories
-        self.categories_count = len(categories)
-        self.matrix = np.zeros((self.categories_count, self.categories_count))
-
-    def add_data(self, actual: int, expected: int):
-        self.matrix[actual][expected] += 1
-
-    def get_mera(self):
-        precision = self.__precision__()
-        recall = self.__recall__()
-        return 2 * (precision * recall) / (precision + recall)
-
-    def __recall__(self):
-        recall = 0.0
-        for i in range(self.categories_count):
-            sum_by_column = 0.0
-            for j in range(self.categories_count):
-                sum_by_column += self.matrix[j][i]
-
-            recall += (self.matrix[i][i] / sum_by_column)
-
-        return recall / self.categories_count
-
-    def __precision__(self):
-        precision = 0.0
-        for i in range(self.categories_count):
-            sum_by_column = 0.0
-            for j in range(self.categories_count):
-                sum_by_column += self.matrix[i][j]
-
-            if sum_by_column == 0:
-                precision += 0
-            else:
-                precision += (self.matrix[i][i] / sum_by_column)
-
-        return precision / self.categories_count
-
 
 def read_test_file(shuffle: bool = False):
     res = []
