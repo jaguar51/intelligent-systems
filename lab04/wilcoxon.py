@@ -84,8 +84,11 @@ def test(
         arr_left = []
         arr_right = []
         for features, true_cat in zip(test_x, test_y):
-            knn_predict = knn.predict(transform_for_knn([features], [true_cat])[0]) * 2 - 1
-            svm_predict = svm.predict(features)
+            # knn_predict = knn.predict(transform_for_knn([features], [true_cat])[0]) * 2 - 1
+            # svm_predict = svm.predict(features)
+
+            knn_predict = knn.predict(transform_for_knn([features], [true_cat])[0])
+            svm_predict = svm.predict(features) + 1 / 1
 
             arr_left.append(knn_predict)
             arr_right.append(svm_predict)
