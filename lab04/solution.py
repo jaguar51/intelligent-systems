@@ -73,12 +73,12 @@ class GaussianKernel(Kernel):
 
 
 class PolynomialKernel(Kernel):
-    def __init__(self, transformer: Transformer = DefTransformer(), p=3):
+    def __init__(self, transformer: Transformer = DefTransformer(), p=4):
         super().__init__(transformer)
         self._p = p
 
     def _calculate(self, x, y) -> float:
-        return (1 + np.dot(x, y)) ** self._p
+        return (np.dot(x, y)) ** self._p
 
 
 class SVMTrainer:
@@ -108,7 +108,6 @@ class SVMTrainer:
         q = cvxopt.matrix(-1 * np.ones(n_samples))
 
         # -a_i \leq 0
-        # TODO(tulloch) - modify G, h so that we have a soft-margin classifier
         G_std = cvxopt.matrix(np.diag(np.ones(n_samples) * -1))
         h_std = cvxopt.matrix(np.zeros(n_samples))
 
