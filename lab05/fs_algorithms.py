@@ -1,11 +1,8 @@
 import math
-import numpy as np
+
 
 # http://www.machinelearning.ru/wiki/index.php?title=Коэффициент_корреляции_Пирсона
 # http://statpsy.ru/pearson/formula-pirsona/
-from collections import defaultdict
-
-
 def pearson_correlation(x, y, k=None):
     correlation = {}
 
@@ -57,7 +54,7 @@ def count_spearman_correlation_coefficient(x, y, rank_dict_y, ligament_y):
     diff_rank = 0
 
     for i, x_el in enumerate(x):
-        diff_rank += ((rank_dict_x[x_el] - (n + 1) / 2) * (rank_dict_y[y[i]] - (n + 1) / 2))
+        diff_rank += (rank_dict_x[x_el] - (n + 1) / 2) * (rank_dict_y[y[i]] - (n + 1) / 2)
 
     coeff = diff_rank / (n * (n - 1) * (n + 1) - (ligament_x + ligament_y))
     return coeff
@@ -76,8 +73,7 @@ def define_rank(arr):
         count_dict[y_el] += 1
 
     for key in count_dict.keys():
-        if count_dict[key] != 1:
-            rank_dict[key] /= count_dict[key]
+        rank_dict[key] /= count_dict[key]
 
     return rank_dict, count_dict
 
