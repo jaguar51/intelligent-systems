@@ -38,7 +38,7 @@ def pearson_example(features, labels, k=10):
     gain = pearson_correlation(features.T, labels, k)
     for k, v in gain:
         keys.append(k)
-        print(k, v)
+        # print(k, v)
 
     print("---------------------")
     print()
@@ -51,7 +51,7 @@ def spearman_example(features, labels, k=10):
     gain = spearman_correlation(features.T, labels, k)
     for k, v in gain:
         keys.append(k)
-        print(k, v)
+        # print(k, v)
 
     print("---------------------")
     print()
@@ -64,7 +64,7 @@ def ig_example(features, labels, k=10):
     gain = info_gain_correlation(features, labels, k)
     for k, v in gain:
         keys.append(k)
-        print(k, v)
+        # print(k, v)
 
     print("---------------------")
     print()
@@ -130,8 +130,7 @@ if __name__ == '__main__':
     features_train, labels_train = read_data('arcene_train')
     features_test, labels_test = read_data('arcene_valid')
 
-    k = 20
-    pearson = pearson_example(features_train, labels_train, k)
+    pearson = pearson_example(features_train, labels_train, 20)
     test_with_mera(
         get_features_by_num(features_train, pearson),
         labels_train,
@@ -139,7 +138,7 @@ if __name__ == '__main__':
         labels_test
     )
 
-    spearman = spearman_example(features_train, labels_train, k)
+    spearman = spearman_example(features_train, labels_train, 100)
     test_with_mera(
         get_features_by_num(features_train, spearman),
         labels_train,
@@ -147,7 +146,7 @@ if __name__ == '__main__':
         labels_test
     )
 
-    ig = ig_example(features_train, labels_train, k)
+    ig = ig_example(features_train, labels_train, 20)
     test_with_mera(
         get_features_by_num(features_train, ig),
         labels_train,
