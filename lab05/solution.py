@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 from matplotlib_venn import venn3
 
 from lab05.fs_algorithms import pearson_correlation, spearman_correlation, info_gain_correlation
+from utils.fmera import FMeraCalculator
 
 
 def chunks(l, n):
@@ -98,10 +99,59 @@ def plot_graphic(pearson, spearman, ig):
     plt.show()
 
 
+def test(features_train, labels_train, features_test):
+    from sklearn.svm import SVC
+    clf = SVC()
+    clf.fit(features_train, labels_train)
+    return clf.predict(features_test)
+
+
+def test_with_mera(features_train, labels_train, features_test, labels_test):
+    f_mera_calc = FMeraCalculator([-1, 1])
+    predict_res = test(features_train, labels_train, features_test)
+
+    for pred, true in zip(predict_res, labels_test):
+        f_mera_calc.add_data(pred, true)
+
+    print("F-Measure {}".format(f_mera_calc.get_mera()))
+
+
+def get_features_by_num(features, nums):
+    new_features = []
+
+    features_t = features.T
+    for num in nums:
+        new_features.append(features_t[num])
+
+    return np.asarray(new_features).T
+
+
 if __name__ == '__main__':
-    features, labels = read_data()
+    features_train, labels_train = read_data('arcene_train')
+    features_test, labels_test = read_data('arcene_valid')
+
     k = 20
-    pearson = pearson_example(features, labels, k)
-    spearman = spearman_example(features, labels, k)
-    ig = ig_example(features, labels, k)
+    pearson = pearson_example(features_train, labels_train, k)
+    test_with_mera(
+        get_features_by_num(features_train, pearson),
+        labels_train,
+        get_features_by_num(features_test, pearson),
+        labels_test
+    )
+
+    spearman = spearman_example(features_train, labels_train, k)
+    test_with_mera(
+        get_features_by_num(features_train, spearman),
+        labels_train,
+        get_features_by_num(features_test, spearman),
+        labels_test
+    )
+
+    ig = ig_example(features_train, labels_train, k)
+    test_with_mera(
+        get_features_by_num(features_train, ig),
+        labels_train,
+        get_features_by_num(features_test, ig),
+        labels_test
+    )
     plot_graphic(pearson, spearman, ig)
