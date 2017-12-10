@@ -142,7 +142,7 @@ if __name__ == '__main__':
         labels_test
     )
 
-    ig = ig_example(features_train, labels_train, 20)
+    ig = ig_example(features_train, labels_train, 25)
     test_with_mera(
         get_features_by_num(features_train, ig),
         labels_train,
