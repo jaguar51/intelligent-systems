@@ -40,8 +40,6 @@ def pearson_example(features, labels, k=10):
         keys.append(k)
         # print(k, v)
 
-    print("---------------------")
-    print()
     return keys
 
 
@@ -53,8 +51,6 @@ def spearman_example(features, labels, k=10):
         keys.append(k)
         # print(k, v)
 
-    print("---------------------")
-    print()
     return keys
 
 
@@ -66,8 +62,6 @@ def ig_example(features, labels, k=10):
         keys.append(k)
         # print(k, v)
 
-    print("---------------------")
-    print()
     return keys
 
 
@@ -114,6 +108,8 @@ def test_with_mera(features_train, labels_train, features_test, labels_test):
         f_mera_calc.add_data(pred, true)
 
     print("F-Measure {}".format(f_mera_calc.get_mera()))
+    print("---------------------")
+    print()
 
 
 def get_features_by_num(features, nums):
